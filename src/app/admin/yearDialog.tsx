@@ -31,7 +31,7 @@ export default function YearDialog () {
   };
   return (
     <Fragment>
-      <Button onClick={onOpen}>Add year</Button>
+      <Button variant='outlined' size='small' onClick={onOpen}>Add year</Button>
       <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth={true}>
         <DialogTitle>Add year</DialogTitle>
         <DialogContent>
