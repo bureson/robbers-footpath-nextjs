@@ -34,9 +34,13 @@ export default function Dashboard (props: any) {
         <Link href='/' onClick={onNavigateHome}>Home</Link>
         <Typography>Dashboard</Typography>
       </Breadcrumbs>
+      <Box mt={2} mb={2}>
+        <h2 className='text-2xl font-bold font-serif'>Manage years</h2>
+        <p className='text-muted-foreground'>Create, edit, and delete years</p>
+      </Box>
       <YearDialog />
       <TableContainer component={Paper} style={{ margin: '15px 0' }}>
-        <Table size='small'>
+        <Table>
           <TableHead>
             <TableRow>
               <TableCell>Year</TableCell>

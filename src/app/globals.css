@@ -26,6 +26,15 @@ h1 {
 
 .home-page {
   color: #fff;
+  transition: opacity 1s ease-in-out;
+}
+
+.home-page.loading {
+  opacity: 0;
+}
+
+.home-page.loaded {
+  opacity: 1;
 }
 
 .dashboard {
