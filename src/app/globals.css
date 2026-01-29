@@ -37,6 +37,11 @@ h1 {
   opacity: 1;
 }
 
+.home-page .inverse {
+  background: #fff;
+  color: var(--foreground);
+}
+
 .dashboard {
   background: #fff;
   color: #000;
@@ -45,4 +50,14 @@ h1 {
 
 .bg-accent {
   background-color: #0a580a;
+  color: #fff;
+}
+
+.bg-accent-10 {
+  background-color: #e5e9e4;
+  color: #0a580a;
+}
+
+.trail-card {
+  background: var(--background);
 }

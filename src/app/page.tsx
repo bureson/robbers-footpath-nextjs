@@ -5,18 +5,43 @@ import { useEffect, useState } from 'react';
 
 import supabase from './lib/supabaseClient';
 import LoadingSpinner from './components/loadingSpinner';
+import TrailGrid from './components/trailGrid';
 
 const monthList = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'];
 
+const getTrasyLabel = (trasyCount: Number) => {
+  switch (trasyCount) {
+    case 0:
+      return 'Žádné trasy';
+    case 1:
+      return '1 trasa';
+    case 2:
+    case 3:
+    case 4:
+      return `${trasyCount} trasy`;
+    default:
+      return `${trasyCount} tras`;
+  }
+}
+
 export default function Home() {
   const [year, setYear] = useState<any>({});
+  const [trailList, setTrailList] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const gettingLatestYear = async () => {
-      const { data, error } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(1);
-      if (error) setError(error.message);
-      else setYear(data[0]);
+      const { data: yearData, error: yearError } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(1);
+      if (yearError) setError(yearError.message);
+      else {
+        const year = yearData[0];
+        const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', year.id);
+        if (trailError) setError(trailError.message);
+        else {
+          setYear(year);
+          setTrailList(trailData);
+        }
+      };
       setLoading(false);
     };
     gettingLatestYear();
@@ -25,6 +50,9 @@ export default function Home() {
   const eventYear = eventDate.getFullYear();
   const month = monthList[eventDate.getMonth()];
   const day = eventDate.getDate();
+
+  const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
+  const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
   return (
     <div>
       {loading && <LoadingSpinner />}
@@ -59,6 +87,37 @@ export default function Home() {
                 width={16}
                 height={16} />
               <span className='font-medium'>Mníšek u Liberce</span>
+            </div>
+          </div>
+        </section>
+        <section className='py-20 px-4 bg-background w-full inverse'>
+          <div className='max-w-7xl mx-auto'>
+            <div className='mb-16'>
+              <div className='flex items-center gap-3 mb-8'>
+                <div className='p-2 bg-accent-10 rounded-lg'>
+                   <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-mountain w-8 h-8'>
+                    <path d='m8 3 4 8 5-5 5 15H2L8 3z' />
+                  </svg>
+                </div>
+                <h3 className='text-2xl font-bold text-foreground font-serif'>Pěší trasy</h3>
+                <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(hikingTrailList.length)}</span>
+              </div>
+              <TrailGrid trailList={hikingTrailList} />
+            </div>
+            <div>
+              <div className='flex items-center gap-3 mb-8'>
+                <div className='p-2 bg-accent-10 rounded-lg'>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bike w-8 h-8 text-accent">
+                    <circle cx="18.5" cy="17.5" r="3.5" />
+                    <circle cx="5.5" cy="17.5" r="3.5" />
+                    <circle cx="15" cy="5" r="1" />
+                    <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
+                  </svg>
+                </div>
+                <h3 className='text-2xl font-bold text-foreground font-serif'>Cyklo trasy</h3>
+                <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(cyclingTrailList.length)}</span>
+              </div>
+              <TrailGrid trailList={cyclingTrailList} />
             </div>
           </div>
         </section>

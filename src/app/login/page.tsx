@@ -29,21 +29,74 @@ export default function Login () {
     }
   };
   return (
-    <Box className='login'>
-      <Card variant='outlined' style={{ margin: 'auto', width: '50%' }}>
-        <Typography variant='h2'>Sign in</Typography>
-        <form onSubmit={handleLogin}>
+     <Box className="flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <Card
+        variant="outlined"
+        className="w-full max-w-md p-8 shadow-xl rounded-2xl bg-white"
+      >
+        <Box mb={2}>
+          <Typography
+            variant="h5"
+            className="text-center text-4xl font-extrabold text-gray-900 tracking-tight"
+          >
+            Sign in
+          </Typography>
+        </Box>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          {/* Email Input */}
           <Box>
-            <TextField variant='outlined' value={email} onChange={onChangeEmail} label='Email' placeholder='admin@example.com' />
+            <TextField
+              variant="outlined"
+              fullWidth
+              label="Email"
+              placeholder="admin@example.com"
+              value={email}
+              onChange={onChangeEmail}
+              className="bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-200 ease-in-out"
+            />
           </Box>
+
+          {/* Password Input */}
           <Box>
-            <TextField variant='outlined' type='password' value={password} onChange={onChangePassword} label='Password' autoComplete='current-password' />
+            <TextField
+              variant="outlined"
+              fullWidth
+              type="password"
+              label="Password"
+              value={password}
+              onChange={onChangePassword}
+              autoComplete="current-password"
+              className="bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-200 ease-in-out"
+            />
           </Box>
-          {error && <Box><Alert severity='error'>{error}</Alert></Box>}
+
+          {/* Error Message */}
+          {error && (
+            <Box>
+              <Alert severity="error" className="mt-4">{error}</Alert>
+            </Box>
+          )}
+
+          {/* Login Button */}
           <Box>
-            <Button variant='outlined' type='submit'>Log in</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              type="submit"
+              className="py-3 text-lg font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+            >
+              Log in
+            </Button>
           </Box>
-          <a href='/'>← Back to homepage</a>
+
+          {/* Back to Homepage Link */}
+          <Box className="text-center mt-4">
+            <a href="/" className="text-indigo-600 hover:text-indigo-800 text-sm transition duration-150 ease-in-out">
+              ← Back to homepage
+            </a>
+          </Box>
         </form>
       </Card>
     </Box>

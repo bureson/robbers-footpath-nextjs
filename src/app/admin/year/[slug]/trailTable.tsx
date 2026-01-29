@@ -16,8 +16,8 @@ export default function TrailTable (props: any) {
               <TableRow>
                 <TableCell>Title</TableCell>
                 <TableCell>Description</TableCell>
-                <TableCell>Distance</TableCell>
-                <TableCell>Elevation</TableCell>
+                <TableCell>Distance (km)</TableCell>
+                <TableCell>Elevation (m)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

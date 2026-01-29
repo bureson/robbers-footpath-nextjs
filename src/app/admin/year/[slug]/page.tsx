@@ -33,14 +33,11 @@ export default function Year () {
   const handleClick = (ev: any) => ev.preventDefault();
   const onNavigateHome = () => router.push('/');
   const onNavigateDashboard = () => router.push(`/admin`);
-  const onChangeEventDate = (ev: any) => {
-    setYear({ ...year, eventDate: ev.target.value });
-  };
   return (
     <ProtectedRoute>
       <Box p={2}>
         <Breadcrumbs onClick={handleClick}>
-          <Link href='/' onClick={onNavigateDashboard}>Home</Link>
+          <Link href='/' onClick={onNavigateHome}>Home</Link>
           <Link href='/admin' onClick={onNavigateDashboard}>Dashboard</Link>
           <Typography>Year {slug}</Typography>
         </Breadcrumbs>
