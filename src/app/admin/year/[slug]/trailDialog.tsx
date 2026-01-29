@@ -1,13 +1,15 @@
 'use client'
 
 import { Fragment, useState } from 'react';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Select, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Select, TextField, Typography } from '@mui/material';
+import Save from '@mui/icons-material/Save';
 
 import supabase from '../../../lib/supabaseClient';
 
 export default function TrailDialog (props: any) {
   const { yearId } = props;
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('hiking');
@@ -22,7 +24,6 @@ export default function TrailDialog (props: any) {
     }
   };
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const onOpen = () => setOpen(true);
   const onClose = () => {
     setOpen(false);
@@ -42,6 +43,7 @@ export default function TrailDialog (props: any) {
   const onChangeType = (ev: any) => setType(ev.target.value);
   const onSave = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`/api/uploadGpx?filename=${selectedFile?.name}`, { method: 'POST', body: selectedFile });
       const { url: gpxFileUrl } = await response.json();
       const { error: insertError } = await supabase.from('trail').upsert([{ yearId, title, description, type, distance: parseFloat(distance), elevation: parseFloat(elevation), gpxFileUrl }]).select();
@@ -105,7 +107,7 @@ export default function TrailDialog (props: any) {
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant='outlined' onClick={onSave}>Save</Button>
+          <Button variant='outlined' onClick={onSave} disabled={loading} startIcon={loading ? <CircularProgress size={24} /> : <Save />}>Save</Button>
         </DialogActions>
       </Dialog>
     </Fragment>

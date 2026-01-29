@@ -26,6 +26,17 @@ export default function YearPage (props: any) {
     gettingTrailList();
   }, []);
 
+  useEffect(() => {
+    const channel = supabase.channel('realtime year').on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'trail'
+    }, payload => {
+      setTrailList(trailList.concat(payload.new));
+    }).subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, trailList, setTrailList]);
+
   const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
   const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
   return (
