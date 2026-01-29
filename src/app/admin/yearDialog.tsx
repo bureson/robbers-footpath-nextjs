@@ -1,7 +1,8 @@
 'use client'
 
 import { Fragment, useState } from 'react';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import Save from '@mui/icons-material/Save';
 
 import supabase from '../lib/supabaseClient';
 
@@ -53,7 +54,7 @@ export default function YearDialog () {
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant='outlined' onClick={onSave}>Save</Button>
+          <Button variant='outlined' onClick={onSave} disabled={loading} startIcon={loading ? <CircularProgress size={24} /> : <Save />}>Save</Button>
         </DialogActions>
       </Dialog>
     </Fragment>
