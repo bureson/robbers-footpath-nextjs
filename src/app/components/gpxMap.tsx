@@ -86,7 +86,7 @@ const GPXMap: React.FC<GPXMapProps> = ({ gpxUrl }) => {
   const zoom = getZoom(bounds);
 
   return (
-    <MapContainer center={center} zoom={zoom} style={{ height: '98%', width: '98%', margin: '0 auto' }}>
+    <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', margin: '0 auto' }}>
       <TileLayer url={`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=keauScA4B5LMSBSWdUf_og2zqpGJRPmh5JTmobrqxh8`} />
       <Polyline positions={gpxData} />
     </MapContainer>

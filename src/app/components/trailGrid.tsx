@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import dynamic from "next/dynamic"
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Link } from '@mui/material';
+import { Box, Button, Dialog, DialogContent, Grid, IconButton } from '@mui/material';
+import Close from '@mui/icons-material/Close';
 import Download from '@mui/icons-material/Download';
 import Map from '@mui/icons-material/Map';
 
@@ -14,13 +15,26 @@ export default function TrailGrid (props: any) {
   return (
     <Box className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
       <Dialog open={open} onClose={onClose} fullScreen>
-        <DialogTitle>{`Detaily k trase ${trail.title}`}</DialogTitle>
-        <DialogContent>
+        <DialogContent style={{ padding: 0, position: 'relative' }}>
+          <IconButton onClick={onClose} size='large' sx={{
+            backgroundColor: 'white',
+            border: '1px solid',
+            borderColor: 'grey.300',
+            borderRadius: 1, // similar to Button
+            boxShadow: 1,
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            zIndex: 999,
+            '&:hover': {
+              backgroundColor: 'grey.100',
+              boxShadow: 2,
+            },
+          }}>
+            <Close />
+          </IconButton>
           <GpxMap gpxUrl={trail.gpxFileUrl} />
         </DialogContent>
-        <DialogActions>
-          <Button variant='outlined' onClick={onClose}>Zavřít</Button>
-        </DialogActions>
       </Dialog>
       {trailList.map((trail: any) => {
         const onViewMap = () => {

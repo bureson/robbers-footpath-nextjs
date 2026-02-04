@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Icon, IconButton } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import Delete from '@mui/icons-material/Delete';
 
 export default function ConfirmDialog (props: any) {

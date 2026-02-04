@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Box, Card, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 
 import supabase from '../../../lib/supabaseClient';
 import TrailDialog from './trailDialog';

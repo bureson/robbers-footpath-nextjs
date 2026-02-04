@@ -73,13 +73,13 @@ export default function Home() {
                 height={16} />
               <span>{`${day}. ${month} ${eventYear}`}</span>
             </div>
-            <h1 className='text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 font-serif leading-tight'>
+            <h1 className='text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 font-serif leading-tight text-shadow'>
               Loupežnickou pěšinou
             </h1>
-            <p className='text-lg md:text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto font-sans'>
+            <p className='text-lg md:text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto font-sans text-shadow'>
               Pěší a cyklistická turistická akce v Mníšku u Liberce. Různé trasy od 9 do 80 km, vhodné pro všechny věkové kategorie
             </p>
-            <div className='flex items-center justify-center gap-2 text-primary-foreground/80'>
+            <div className='flex items-center justify-center gap-2 text-primary-foreground/80 text-shadow'>
               <Image
                 className='dark:invert'
                 src='/place.svg'
@@ -87,6 +87,11 @@ export default function Home() {
                 width={16}
                 height={16} />
               <span className='font-medium'>Mníšek u Liberce</span>
+            </div>
+          </div>
+          <div className='absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce'>
+            <div className='w-6 h-10 border-2 border-primary-foreground/50 rounded-full flex items-start justify-center pt-2'>
+              <div className='w-1.5 h-3 bounce-ball rounded-full'></div>
             </div>
           </div>
         </section>

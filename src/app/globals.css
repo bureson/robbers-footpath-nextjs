@@ -20,7 +20,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-h1 {
+.text-shadow {
   text-shadow: 1px 1px 1px #000;
 }
 
@@ -58,6 +58,7 @@ h1 {
   color: #0a580a;
 }
 
-.trail-card {
+.trail-card,
+.bounce-ball {
   background: var(--background);
 }
