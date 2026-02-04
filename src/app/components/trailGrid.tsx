@@ -13,7 +13,7 @@ export default function TrailGrid (props: any) {
   const [trail, setTrail] = useState<any>({});
   const onClose = () => setOpen(false);
   return (
-    <Box className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+    <Box className={trailList.length > 0 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' : ''}>
       <Dialog open={open} onClose={onClose} fullScreen>
         <DialogContent style={{ padding: 0, position: 'relative' }}>
           <IconButton onClick={onClose} size='large' sx={{
@@ -36,6 +36,9 @@ export default function TrailGrid (props: any) {
           <GpxMap gpxUrl={trail.gpxFileUrl} />
         </DialogContent>
       </Dialog>
+      {trailList.length === 0 && <Box className="text-center py-10">
+        <h3 className="text-xl font-semibold text-gray-500">Pro aktuální ročník nejsou zatím žádné trasy k dispozici. Zveřejněny budou během několika následujících dní!</h3>
+      </Box>}
       {trailList.map((trail: any) => {
         const onViewMap = () => {
           setOpen(true);
@@ -48,7 +51,7 @@ export default function TrailGrid (props: any) {
               <p className='text-sm text-gray-600'>{trail.description}</p>
               <Box className='mt-auto flex space-x-4 mt-4'>
                 <Grid container spacing={2} style={{ width: '100%' }}>
-                  <Grid size={6}>
+                  <Grid size={4}>
                     <Button
                       variant='outlined'
                       href={`${trail.gpxFileUrl}?download=1`}
@@ -58,14 +61,14 @@ export default function TrailGrid (props: any) {
                       GPX
                     </Button>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid size={8}>
                     <Button
                       variant='contained'
                       onClick={onViewMap}
                       className='w-full bg-gray-600 text-white text-center py-2 rounded-lg transition duration-300 hover:bg-gray-700'
                       startIcon={<Map />}
                     >
-                      Detaily
+                      Mapa trasy
                     </Button>
                   </Grid>
                 </Grid>

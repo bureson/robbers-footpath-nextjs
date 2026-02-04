@@ -12,7 +12,7 @@ const monthList = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', '
 const getTrasyLabel = (trasyCount: Number) => {
   switch (trasyCount) {
     case 0:
-      return 'Žádné trasy';
+      return 'Zatím žádné trasy';
     case 1:
       return '1 trasa';
     case 2:
