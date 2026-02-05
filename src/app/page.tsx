@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { Box, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 
 import supabase from './lib/supabaseClient';
 import LoadingSpinner from './components/loadingSpinner';
@@ -24,8 +25,17 @@ const getTrasyLabel = (trasyCount: Number) => {
   }
 }
 
+const getDateString = (date: any) => {
+  const eventDate = new Date(date);
+  const eventYear = eventDate.getFullYear();
+  const month = monthList[eventDate.getMonth()];
+  const day = eventDate.getDate();
+  return `${day}. ${month} ${eventYear}`;
+};
+
 export default function Home() {
   const [year, setYear] = useState<any>({});
+  const [otherYearList, setOtherYearList] = useState<any[]>([]);
   const [trailList, setTrailList] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -34,11 +44,12 @@ export default function Home() {
       const { data: yearData, error: yearError } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(1);
       if (yearError) setError(yearError.message);
       else {
-        const year = yearData[0];
-        const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', year.id);
+        const [thisYear, ...otherYearList] = yearData;
+        const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', thisYear.id);
         if (trailError) setError(trailError.message);
         else {
-          setYear(year);
+          setYear(thisYear);
+          setOtherYearList(otherYearList);
           setTrailList(trailData);
         }
       };
@@ -46,10 +57,14 @@ export default function Home() {
     };
     gettingLatestYear();
   }, []);
-  const eventDate = new Date(year.eventDate);
-  const eventYear = eventDate.getFullYear();
-  const month = monthList[eventDate.getMonth()];
-  const day = eventDate.getDate();
+
+  const selectYear = async (selectedYear: any) => {
+    const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', selectedYear.id);
+    if (trailError) setError(trailError.message);
+    else {
+      setTrailList(trailData);
+    }
+  };
 
   const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
   const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
@@ -71,7 +86,7 @@ export default function Home() {
                 alt='Calendar'
                 width={16}
                 height={16} />
-              <span>{`${day}. ${month} ${eventYear}`}</span>
+              <span>{getDateString(year.eventDate)}</span>
             </div>
             <h1 className='text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 font-serif leading-tight text-shadow'>
               Loupežnickou pěšinou
@@ -98,15 +113,42 @@ export default function Home() {
         <section className='py-20 px-4 bg-background w-full inverse'>
           <div className='max-w-7xl mx-auto'>
             <div className='mb-16'>
-              <div className='flex items-center gap-3 mb-8'>
+              <div className='flex flex-col md:flex-row items-center gap-3 mb-8'>
+                {/* The select box on mobile will be full-width, above the header, and have a bottom margin */}
+                {otherYearList.length > 0 && (
+                  <Box className='w-full md:w-auto md:order-1 mb-4 md:mb-0 ml-auto'>
+                    <FormControl 
+                      size='small' 
+                      style={{ minWidth: '300px' }} 
+                      className='w-full md:w-auto md:order-1'>
+                      <InputLabel>Předchozí ročníky</InputLabel>
+                      <Select label='Předchozí ročníky' value=''>
+                        {otherYearList.map((year: any) => {
+                          return (
+                            <MenuItem key={year.id} value={year.id}>
+                              Ročník {year.year} ({getDateString(year.eventDate)})
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                )}
+
+                {/* Mountain Icon */}
                 <div className='p-2 bg-accent-10 rounded-lg'>
-                   <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-mountain w-8 h-8'>
+                  <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-mountain w-8 h-8'>
                     <path d='m8 3 4 8 5-5 5 15H2L8 3z' />
                   </svg>
                 </div>
+                
+                {/* Header */}
                 <h3 className='text-2xl font-bold text-foreground font-serif'>Pěší trasy</h3>
+                
+                {/* Label */}
                 <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(hikingTrailList.length)}</span>
               </div>
+              
               <TrailGrid trailList={hikingTrailList} />
             </div>
             <div>
@@ -153,7 +195,7 @@ export default function Home() {
                       alt='Calendar'
                       width={16}
                       height={16} />
-                    <span>{`${day}. ${month} ${eventYear}`}</span>
+                    <span>{getDateString(year.eventDate)}</span>
                   </div>
                   <div className='flex items-center gap-3 text-primary-foreground/80'>
                     <Image

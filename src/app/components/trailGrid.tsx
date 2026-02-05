@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import dynamic from "next/dynamic"
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { Box, Button, Dialog, DialogContent, Grid, IconButton } from '@mui/material';
 import Close from '@mui/icons-material/Close';
 import Download from '@mui/icons-material/Download';
@@ -47,8 +48,17 @@ export default function TrailGrid (props: any) {
         return (
           <Box key={trail.id} className='group trail-card relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-500 transform hover:translate-y-[-8px] hover:shadow-xl'>
             <Box className='flex flex-col p-6 space-y-4 h-full'>
-              <h3 className='text-2xl font-semibold text-gray-800'>{trail.title}</h3>
-              <p className='text-sm text-gray-600'>{trail.description}</p>
+              <Box className='flex items-center space-x-2'>
+                <h3 className='text-2xl font-semibold text-gray-800'>{trail.title}</h3>
+                <Box className='flex items-center text-sm text-gray-600 ml-auto'>
+                  <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-trending-up w-4 h-4'>
+                    <polyline points='22 7 13.5 15.5 8.5 10.5 2 17'></polyline>
+                    <polyline points='16 7 22 7 22 13'></polyline>
+                  </svg>
+                  <span className='ml-2'>{trail.elevation} m</span>
+                </Box>
+              </Box>
+              <p className='text-sm text-gray-600 text-justify'>{trail.description}</p>
               <Box className='mt-auto flex space-x-4 mt-4'>
                 <Grid container spacing={2} style={{ width: '100%' }}>
                   <Grid size={4}>
