@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { Box, Breadcrumbs, Button, Link, Paper, Table, TableContainer, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Box, Breadcrumbs, Button, IconButton, Link, Paper, Table, TableContainer, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import Edit from '@mui/icons-material/Edit';
 
 import ConfirmDialog from '../components/confirmDialog';
 import { useAuth } from '../context/authContext';
@@ -19,7 +20,7 @@ export default function Dashboard (props: any) {
   useEffect(() => {
     const gettingYearList = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from('year').select('*');
+      const { data, error } = await supabase.from('year').select('*').order('year', { ascending: false });
       if (error) setError(error.message);
       else setYearList(data);
       setLoading(false);
@@ -61,12 +62,17 @@ export default function Dashboard (props: any) {
           <TableHead>
             <TableRow>
               <TableCell>Year</TableCell>
+              <TableCell>Event date</TableCell>
               <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {yearList.map((year: any) => {
               const selectYear = () => router.push(`/admin/year/${year.year}`);
+              const onEditYear = (ev: any) => {
+                ev.stopPropagation();
+                console.log('Not implemented yet', year.id);
+              };
               const onDelete = (ev: any) => {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -75,7 +81,11 @@ export default function Dashboard (props: any) {
               return (
                 <TableRow key={year.id} hover={true} onClick={selectYear} style={{ cursor: 'pointer' }}>
                   <TableCell>{year.year}</TableCell>
-                  <TableCell style={{ textAlign: 'right' }}>
+                  <TableCell>{year.eventDate}</TableCell>
+                  <TableCell style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <IconButton onClick={onEditYear} size='small'>
+                      <Edit />
+                    </IconButton>
                     <ConfirmDialog onConfirm={onDelete} />
                   </TableCell>
                 </TableRow>

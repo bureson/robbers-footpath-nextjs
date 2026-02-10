@@ -18,9 +18,7 @@ export default function YearPage (props: any) {
       setLoading(true);
       const { data, error } = await supabase.from('trail').select('*').eq('yearId', year.id);
       if (error) setError(error.message);
-      else {
-        setTrailList(data);
-      }
+      else setTrailList(data);
       setLoading(false);
     };
     gettingTrailList();
@@ -39,6 +37,13 @@ export default function YearPage (props: any) {
 
   const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
   const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
+  const onEdit = (trailId: any) => {
+    console.log('Not implemented yet', trailId);
+  };
+  const onDelete = async (trailId: any) => {
+    setTrailList(trailList.filter(trail => trail.id !== trailId));
+    await supabase.from('trail').delete().eq('id', trailId);
+  };
   return (
     <Box>
       <Box mt={2} mb={2}>
@@ -48,11 +53,11 @@ export default function YearPage (props: any) {
       <TrailDialog yearId={year.id} />
       <Box mt={2} mb={2}>
         <h3 className='text-xl font-bold font-serif'>Hiking paths</h3>
-        <TrailTable trailList={hikingTrailList} />
+        <TrailTable trailList={hikingTrailList} onEdit={onEdit} onDelete={onDelete} />
       </Box>
       <Box mt={2} mb={2}>
         <h3 className='text-xl font-bold font-serif'>Cycling paths</h3>
-        <TrailTable trailList={cyclingTrailList} />
+        <TrailTable trailList={cyclingTrailList} onEdit={onEdit} onDelete={onDelete} />
       </Box>
     </Box>
   );

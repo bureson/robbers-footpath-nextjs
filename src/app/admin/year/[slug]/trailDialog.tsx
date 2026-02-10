@@ -41,11 +41,19 @@ export default function TrailDialog (props: any) {
   const onChangeDistance = (ev: any) => setDistance(ev.target.value);
   const onChangeElevation = (ev: any) => setElevation(ev.target.value);
   const onChangeType = (ev: any) => setType(ev.target.value);
+  const onUploadGpx = async () => {
+    if (selectedFile) {
+      const response = await fetch(`/api/uploadGpx?filename=${selectedFile?.name}`, { method: 'POST', body: selectedFile });
+      const { url } = await response.json();
+      return url;
+    } else {
+      return null;
+    }
+  };
   const onSave = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/uploadGpx?filename=${selectedFile?.name}`, { method: 'POST', body: selectedFile });
-      const { url: gpxFileUrl } = await response.json();
+      const gpxFileUrl = onUploadGpx();
       const { error: insertError } = await supabase.from('trail').upsert([{ yearId, title, description, type, distance: parseFloat(distance), elevation: parseFloat(elevation), gpxFileUrl }]).select();
       if (insertError) setError(insertError.message);
       else onClose();
