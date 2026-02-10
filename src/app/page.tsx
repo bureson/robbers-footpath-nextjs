@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { Box, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Fragment, useEffect, useState } from 'react';
+import { Alert, Link, Snackbar } from '@mui/material';
 
 import supabase from './lib/supabaseClient';
 import LoadingSpinner from './components/loadingSpinner';
@@ -35,21 +35,21 @@ const getDateString = (date: any) => {
 
 export default function Home() {
   const [year, setYear] = useState<any>({});
-  const [otherYearList, setOtherYearList] = useState<any[]>([]);
+  const [yearList, setYearList] = useState<any[]>([]);
   const [trailList, setTrailList] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const gettingLatestYear = async () => {
-      const { data: yearData, error: yearError } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(1);
+      const { data: yearList, error: yearError } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(10);
       if (yearError) setError(yearError.message);
       else {
-        const [thisYear, ...otherYearList] = yearData;
+        const [thisYear] = yearList;
         const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', thisYear.id);
         if (trailError) setError(trailError.message);
         else {
           setYear(thisYear);
-          setOtherYearList(otherYearList);
+          setYearList(yearList);
           setTrailList(trailData);
         }
       };
@@ -62,15 +62,22 @@ export default function Home() {
     const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', selectedYear.id);
     if (trailError) setError(trailError.message);
     else {
+      setYear(selectedYear);
       setTrailList(trailData);
+      document.getElementById('trail-section')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
+  const onSelectThisYear = () => selectYear(yearList[0]);
+  const onHideSnackbar = () => setError('');
 
+  const otherYearList = yearList.filter((_, i) => i !== 0);
+  const inspectingOldYear = otherYearList.some(otherYear => otherYear.id === year.id);
   const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
   const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
   return (
     <div>
       {loading && <LoadingSpinner />}
+      {error && <Snackbar open={!!error} autoHideDuration={6000} onClose={onHideSnackbar}><Alert severity={'error'} variant={'filled'} onClose={onHideSnackbar}>{error}</Alert></Snackbar>}
       <div className={`flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black bg-background home-page ${loading ? 'loading' : 'loaded'}`}>
         <section className='relative flex items-center justify-center w-full h-screen min-h-[600px] overflow-hidden'>
           <div
@@ -110,48 +117,32 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className='py-20 px-4 bg-background w-full inverse'>
+        <section id='trail-section' className='py-20 px-4 bg-background w-full inverse'>
           <div className='max-w-7xl mx-auto'>
+            <div className='text-center mb-16 animate-slide-up'>
+              <h2 className='section-title mb-6 text-3xl md:text-4xl lg:text-5xl font-serif'>Trasy pro rok {year.year}</h2>
+              <p className='text-muted-foreground max-w-2xl mx-auto text-lg'>
+                Vyberte si některou z {trailList.length} nabízených tras, které pro vás nachystal Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si můžete stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace
+              </p>
+              {inspectingOldYear && <p className='mt-4'>
+                <Link component='button' onClick={onSelectThisYear}>
+                  ← Zpět na letošní ročník
+                </Link>
+              </p>}
+            </div>
             <div className='mb-16'>
               <div className='flex flex-col md:flex-row items-center gap-3 mb-8'>
-                {/* The select box on mobile will be full-width, above the header, and have a bottom margin */}
-                {otherYearList.length > 0 && (
-                  <Box className='w-full md:w-auto md:order-1 mb-4 md:mb-0 ml-auto'>
-                    <FormControl 
-                      size='small' 
-                      style={{ minWidth: '300px' }} 
-                      className='w-full md:w-auto md:order-1'>
-                      <InputLabel>Předchozí ročníky</InputLabel>
-                      <Select label='Předchozí ročníky' value=''>
-                        {otherYearList.map((year: any) => {
-                          return (
-                            <MenuItem key={year.id} value={year.id}>
-                              Ročník {year.year} ({getDateString(year.eventDate)})
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                )}
-
-                {/* Mountain Icon */}
                 <div className='p-2 bg-accent-10 rounded-lg'>
                   <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-mountain w-8 h-8'>
                     <path d='m8 3 4 8 5-5 5 15H2L8 3z' />
                   </svg>
                 </div>
-                
-                {/* Header */}
                 <h3 className='text-2xl font-bold text-foreground font-serif'>Pěší trasy</h3>
-                
-                {/* Label */}
                 <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(hikingTrailList.length)}</span>
               </div>
-              
               <TrailGrid trailList={hikingTrailList} />
             </div>
-            <div>
+            <div className='mb-16'>
               <div className='flex items-center gap-3 mb-8'>
                 <div className='p-2 bg-accent-10 rounded-lg'>
                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bike w-8 h-8 text-accent">
@@ -166,6 +157,22 @@ export default function Home() {
               </div>
               <TrailGrid trailList={cyclingTrailList} />
             </div>
+            {otherYearList.length > 0 && <div className='text-center mb-4 animate-slide-up'>
+              <p className='text-muted-foreground mb-2 max-w-2xl mx-auto text-lg'>
+                Prohlédnout si také můžete trasy předchozích ročníků:
+              </p>
+              {otherYearList.map((year: any, index: number) => {
+                const onClickYear = () => selectYear(year);
+                return (
+                  <Fragment key={year.id}>
+                    <Link component="button" onClick={onClickYear}>
+                      {year.year}
+                    </Link>
+                    {index < otherYearList.length - 1 && ' | '}
+                  </Fragment>
+                );
+              })}
+            </div>}
           </div>
         </section>
         <footer className='bg-accent text-primary-foreground w-full py-16 px-4'>

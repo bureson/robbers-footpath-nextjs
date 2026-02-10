@@ -37,16 +37,19 @@ const calculateBounds = (points: LatLngTuple[]): LatLngBounds => {
 
 const getZoom = (bounds: LatLngBounds) => {
   const distance = bounds.getNorthEast().distanceTo(bounds.getSouthWest());
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const zoomAdjustment = devicePixelRatio > 1 ? 0.8 : 1;
+  const adjustedDistance = distance / zoomAdjustment;
 
-  if (distance < 200) {
+  if (adjustedDistance < 200) {
     return 18;
-  } else if (distance < 1000) {
+  } else if (adjustedDistance < 1000) {
     return 17;
-  } else if (distance < 5000) {
+  } else if (adjustedDistance < 5000) {
     return 15;
-  } else if (distance < 7500) {
+  } else if (adjustedDistance < 7500) {
     return 14;
-  } else if (distance < 15000) {
+  } else if (adjustedDistance < 15000) {
     return 13;
   } else {
     return 12;

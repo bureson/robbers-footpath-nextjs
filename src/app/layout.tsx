@@ -16,8 +16,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Loupežnickou pěšinou',
-  description: 'Pěší a cyklistická turistická akce v Mníšku u Liberce. Různé trasy od 9 do 80 km, vhodné pro všechny věkové kategorie',
+  title: {
+    default: 'Loupežnická pěšina',
+    template: '%s | Loupežnickou pěšinou',
+  },
+  description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
+  metadataBase: new URL('https://www.loupeznickapesina.cz'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Loupežnická pěšina',
+    description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
+    url: 'https://www.loupeznickapesina.cz',
+    siteName: 'My App Name',
+    locale: 'cs_CZ',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <html lang='cs'>
+      <html lang='cs' className='scroll-smooth'>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >

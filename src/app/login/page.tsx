@@ -44,7 +44,6 @@ export default function Login () {
         </Box>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email Input */}
           <Box>
             <TextField
               variant="outlined"
@@ -56,8 +55,6 @@ export default function Login () {
               className="bg-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-200 ease-in-out"
             />
           </Box>
-
-          {/* Password Input */}
           <Box>
             <TextField
               variant="outlined"
@@ -71,14 +68,12 @@ export default function Login () {
             />
           </Box>
 
-          {/* Error Message */}
           {error && (
             <Box>
               <Alert severity="error" className="mt-4">{error}</Alert>
             </Box>
           )}
 
-          {/* Login Button */}
           <Box>
             <Button
               variant="contained"
@@ -91,7 +86,6 @@ export default function Login () {
             </Button>
           </Box>
 
-          {/* Back to Homepage Link */}
           <Box className="text-center mt-4">
             <a href="/" className="text-indigo-600 hover:text-indigo-800 text-sm transition duration-150 ease-in-out">
               ← Back to homepage
