@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Loupežnická pěšina',
-    template: '%s | Loupežnickou pěšinou',
+    default: `Loupežnická pěšina ${new Date().getFullYear()}`,
+    template: `%s | Loupežnická pěšina ${new Date().getFullYear()}`,
   },
   description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
   metadataBase: new URL('https://www.loupeznickapesina.cz'),
@@ -26,12 +26,20 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Loupežnická pěšina',
+    title: `Loupežnická pěšina ${new Date().getFullYear()}`,
     description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
     url: 'https://www.loupeznickapesina.cz',
-    siteName: 'My App Name',
+    siteName: 'Loupežnická pěšina',
     locale: 'cs_CZ',
     type: 'website',
+    images: [
+      {
+        url: 'https://www.loupeznickapesina.cz/page-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Loupežnická pěšina'
+      },
+    ]
   },
 };
 
