@@ -53,7 +53,7 @@ export default function TrailDialog (props: any) {
   const onSave = async () => {
     try {
       setLoading(true);
-      const gpxFileUrl = onUploadGpx();
+      const gpxFileUrl = await onUploadGpx();
       const { error: insertError } = await supabase.from('trail').upsert([{ yearId, title, description, type, distance: parseFloat(distance), elevation: parseFloat(elevation), gpxFileUrl }]).select();
       if (insertError) setError(insertError.message);
       else onClose();
