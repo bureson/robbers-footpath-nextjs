@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
+  other: {
+    'application/ld+json': JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      'name': 'Loupežnická pěšina',
+      'url': 'https://www.loupeznickapesina.cz/',
+    }),
+  },
   openGraph: {
     title: `Loupežnická pěšina ${new Date().getFullYear()}`,
     description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
