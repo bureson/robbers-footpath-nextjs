@@ -13,11 +13,15 @@ const parseGPX = (gpxData: string): [number, number][] => {
 
   const trackPoints: [number, number][] = [];
   const trkpts = xmlDoc.getElementsByTagName('trkpt');
+  const rtepts = xmlDoc.getElementsByTagName('rtept');
+  const points = trkpts.length > 0 ? trkpts : rtepts;
   
-  for (let i = 0; i < trkpts.length; i++) {
-    const lat = parseFloat(trkpts[i].getAttribute('lat') || '0');
-    const lon = parseFloat(trkpts[i].getAttribute('lon') || '0');
-    trackPoints.push([lat, lon]);
+  for (let i = 0; i < points.length; i++) {
+    const lat = parseFloat(points[i].getAttribute('lat') || '');
+    const lon = parseFloat(points[i].getAttribute('lon') || '');
+    if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+      trackPoints.push([lat, lon]);
+    }
   }
 
   return trackPoints;
@@ -59,6 +63,7 @@ const getZoom = (bounds: LatLngBounds) => {
 const GPXMap: React.FC<GPXMapProps> = ({ gpxUrl }) => {
   const [gpxData, setGpxData] = useState<[number, number][] | null>(null);
   const [bounds, setBounds] = useState<LatLngBounds | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchGPX = async () => {
@@ -69,17 +74,25 @@ const GPXMap: React.FC<GPXMapProps> = ({ gpxUrl }) => {
         }
         const data = await response.text();
         const trackPoints = parseGPX(data);
+        if (trackPoints.length === 0) {
+          throw new Error('No route points found in GPX file');
+        }
         setGpxData(trackPoints);
 
         const trackBounds = calculateBounds(trackPoints);
         setBounds(trackBounds);
       } catch (error) {
         console.error(error);
+        setError(error instanceof Error ? error.message : 'Failed to load GPX file');
       }
     };
 
     fetchGPX();
   }, [gpxUrl]);
+
+  if (error) {
+    return <div>{error}</div>;
+  }
 
   if (!gpxData || !bounds) {
     return <div>Loading GPX data...</div>;

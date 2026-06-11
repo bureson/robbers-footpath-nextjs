@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, Breadcrumbs, Button, IconButton, Link, Paper, Table, TableContainer, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import Edit from '@mui/icons-material/Edit';
@@ -14,6 +14,7 @@ export default function Dashboard (props: any) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [yearList, setYearList] = useState<any[]>([]);
+  const yearDialogRef = useRef<any>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,16 +29,29 @@ export default function Dashboard (props: any) {
     gettingYearList();
   }, []);
 
+  const mergeYear = (savedYear: any) => {
+    setYearList(prevYearList => {
+      const nextYearList = prevYearList.some(year => year.id === savedYear.id)
+        ? prevYearList.map(year => year.id === savedYear.id ? savedYear : year)
+        : prevYearList.concat(savedYear);
+      return nextYearList.sort((a, b) => b.year - a.year);
+    });
+  };
+
   useEffect(() => {
     const channel = supabase.channel('realtime year').on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'year'
+      event: '*', schema: 'public', table: 'year'
     }, payload => {
-      setYearList(yearList.concat(payload.new));
+      if (payload.eventType === 'DELETE') {
+        setYearList(prevYearList => prevYearList.filter(year => year.id !== payload.old.id));
+      } else {
+        mergeYear(payload.new);
+      }
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, yearList, setYearList]);
+  }, [supabase, setYearList]);
 
   const handleClick = (ev: any) => ev.preventDefault();
   const onNavigateHome = (ev: any) => router.push('/');
@@ -45,6 +59,7 @@ export default function Dashboard (props: any) {
     setYearList(yearList.filter(year => year.id !== yearId));
     await supabase.from('year').delete().eq('id', yearId);
   };
+  const onSaveYear = (savedYear: any) => mergeYear(savedYear);
 
   return (
     <Box p={2}>
@@ -56,7 +71,7 @@ export default function Dashboard (props: any) {
         <h2 className='text-2xl font-bold font-serif'>Manage years</h2>
         <p className='text-muted-foreground'>Create, edit, and delete years</p>
       </Box>
-      <YearDialog />
+      <YearDialog ref={yearDialogRef} onSaved={onSaveYear} />
       <TableContainer component={Paper} style={{ margin: '15px 0' }}>
         <Table>
           <TableHead>
@@ -71,7 +86,7 @@ export default function Dashboard (props: any) {
               const selectYear = () => router.push(`/admin/year/${year.year}`);
               const onEditYear = (ev: any) => {
                 ev.stopPropagation();
-                console.log('Not implemented yet', year.id);
+                yearDialogRef.current?.openEdit(year);
               };
               const onDelete = (ev: any) => {
                 ev.preventDefault();
