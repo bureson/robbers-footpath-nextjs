@@ -15,7 +15,7 @@ type Trail = {
   description: string;
   elevation: number;
   gpxFileUrl: string;
-  participantCount?: number | null;
+  participant_count?: number | null;
 };
 
 type TrailGridProps = {
@@ -59,7 +59,7 @@ export default function TrailGrid (props: TrailGridProps) {
           setOpen(true);
           setTrail(trail);
         };
-        const participants = trail.participantCount;
+        const participants = trail.participant_count;
         return (
           <Box key={trail.id} className='group trail-card relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-500 transform hover:translate-y-[-8px] hover:shadow-xl'>
             <Box className='flex flex-col p-6 space-y-4 h-full'>
