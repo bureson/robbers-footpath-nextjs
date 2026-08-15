@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import Script from 'next/script';
 
 import { AuthProvider } from './context/authContext';
 import './globals.css';
@@ -64,6 +65,11 @@ export default function RootLayout({
         >
           {children}
           <SpeedInsights />
+          <Script
+            data-goatcounter='https://loupeznickapesina.goatcounter.com/count'
+            src='//gc.zgo.at/count.js'
+            strategy='afterInteractive'
+          />
         </body>
       </html>
     </AuthProvider>
