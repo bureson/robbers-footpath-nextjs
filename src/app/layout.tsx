@@ -21,6 +21,17 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// Google reads the site name shown in search results from a WebSite JSON-LD
+// block. It must be a <script type="application/ld+json">; putting it in the
+// `other` metadata field renders a <meta> tag, which Google ignores.
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Loupežnická pěšina',
+  alternateName: 'Loupeznicka pesina',
+  url: 'https://www.loupeznickapesina.cz/',
+};
+
 export const metadata: Metadata = {
   title: {
     default: `Loupežnická pěšina ${new Date().getFullYear()}`,
@@ -30,14 +41,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.loupeznickapesina.cz'),
   alternates: {
     canonical: '/',
-  },
-  other: {
-    'application/ld+json': JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      'name': 'Loupežnická pěšina',
-      'url': 'https://www.loupeznickapesina.cz/',
-    }),
   },
   openGraph: {
     title: `Loupežnická pěšina ${new Date().getFullYear()}`,
@@ -68,6 +71,10 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} antialiased`}
         >
+          <script
+            type='application/ld+json'
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+          />
           {children}
           <SpeedInsights />
           <Script

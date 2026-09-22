@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 // Animated landscape for the public hero: drifting clouds, hikers and cyclists on the trail, a signpost.
 // SMIL animations run natively in the browser, no JS needed.
@@ -9,32 +9,27 @@ type HeroSceneProps = {
   year: string;
 };
 
-const NARROW_QUERY = '(max-width: 767px)';
 const VIEW_W = 1280;
 const VIEW_H = 560;
 
-export default function HeroScene ({ year }: HeroSceneProps) {
-  // On phones the centred crop would lose the sun, so it moves in to peek from the top-right corner there.
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia(NARROW_QUERY);
-    const update = () => setNarrow(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
+const cutTopOf = (width: number, height: number) => width && height ? Math.max(0, VIEW_H - VIEW_W * height / width) : 0;
 
+export default function HeroScene ({ year }: HeroSceneProps) {
   // With a bottom-anchored 'slice' crop, very wide heroes lose the top of the scene. Measure how many
-  // viewBox units are cut and slide the sky (sun, clouds, birds) down so they stay in frame.
+  // viewBox units are cut and slide the sky (sun, clouds, birds) down so they stay in frame. The first
+  // measurement happens in a layout effect so the shift is applied before the hydrated frame paints.
   const svgRef = useRef<SVGSVGElement>(null);
   const [cutTop, setCutTop] = useState(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const svg = svgRef.current;
-    if (!svg || typeof ResizeObserver === 'undefined') return;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    setCutTop(cutTopOf(rect.width, rect.height));
+    if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(entries => {
       const { width, height } = entries[0].contentRect;
       if (!width || !height) return;
-      setCutTop(Math.max(0, VIEW_H - VIEW_W * height / width));
+      setCutTop(cutTopOf(width, height));
     });
     observer.observe(svg);
     return () => observer.disconnect();
@@ -72,7 +67,10 @@ export default function HeroScene ({ year }: HeroSceneProps) {
 
       <rect width='1280' height='560' fill='url(#hero-sky)' />
       <g transform={`translate(0 ${skyShift})`}>
-      <circle cx={narrow ? 812 : 980} cy='150' r='46' fill='#f2c418'><animate attributeName='cy' values='160;140;160' dur='30s' repeatCount='indefinite' /></circle>
+      {/* On phones the centred crop would lose the sun, so a second copy peeks from the top-right corner there.
+          Both are in the markup and CSS picks one, so the sun never jumps after hydration. */}
+      <circle cx='980' cy='150' r='46' fill='#f2c418' className='hidden md:block'><animate attributeName='cy' values='160;140;160' dur='30s' repeatCount='indefinite' /></circle>
+      <circle cx='812' cy='150' r='46' fill='#f2c418' className='md:hidden'><animate attributeName='cy' values='160;140;160' dur='30s' repeatCount='indefinite' /></circle>
       <g fill='#fff' opacity='.9'>
         <g><ellipse cx='0' cy='0' rx='70' ry='22' /><ellipse cx='-30' cy='-10' rx='36' ry='24' /><ellipse cx='22' cy='-14' rx='44' ry='30' /><animateTransform attributeName='transform' type='translate' values='-160 110;1440 110' dur='150s' repeatCount='indefinite' /></g>
         <g><ellipse cx='0' cy='0' rx='90' ry='24' /><ellipse cx='-40' cy='-12' rx='40' ry='26' /><ellipse cx='30' cy='-18' rx='50' ry='34' /><animateTransform attributeName='transform' type='translate' values='-200 70;1480 70' dur='190s' repeatCount='indefinite' begin='-80s' /></g>
