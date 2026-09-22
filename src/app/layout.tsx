@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
 
 import { AuthProvider } from './context/authContext';
+import supabase from './lib/supabaseClient';
 import './globals.css';
 
 const geistSans = Geist({
@@ -32,40 +33,58 @@ const siteJsonLd = {
   url: 'https://www.loupeznickapesina.cz/',
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: `Loupežnická pěšina ${new Date().getFullYear()}`,
-    template: `%s | Loupežnická pěšina ${new Date().getFullYear()}`,
-  },
-  description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
-  metadataBase: new URL('https://www.loupeznickapesina.cz'),
-  alternates: {
-    canonical: '/',
-  },
-  // Google shows the large og:image preview (Discover, rich results) only when the page opts in.
-  robots: {
-    index: true,
-    follow: true,
-    'max-image-preview': 'large',
-  },
-  openGraph: {
-    title: `Loupežnická pěšina ${new Date().getFullYear()}`,
-    description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
-    url: 'https://www.loupeznickapesina.cz',
-    siteName: 'Loupežnická pěšina',
-    locale: 'cs_CZ',
-    type: 'website',
-    images: [
-      {
-        // Bump the query when the image changes so social networks refetch it instead of serving their cached copy.
-        url: 'https://www.loupeznickapesina.cz/page-image.png?v=2',
-        width: 1200,
-        height: 630,
-        alt: 'Loupežnická pěšina'
-      },
-    ]
-  },
+// The layout is rendered once per revalidation window, so the title picks up a newly added year
+// within a minute, matching the public page (see page.tsx).
+export const revalidate = 60;
+
+const description = 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.';
+
+// The year in the title is the newest edition in the database, which is what the home page shows
+// as the current one. If the query fails, fall back to the calendar year rather than no year.
+const latestYear = async () => {
+  const { data, error } = await supabase.from('year').select('year').order('year', { ascending: false }).limit(1);
+  const year = Number(data?.[0]?.year);
+  return !error && Number.isFinite(year) && year > 0 ? year : new Date().getFullYear();
 };
+
+export async function generateMetadata (): Promise<Metadata> {
+  const siteTitle = `Loupežnická pěšina ${await latestYear()}`;
+
+  return {
+    title: {
+      default: siteTitle,
+      template: `%s | ${siteTitle}`,
+    },
+    description,
+    metadataBase: new URL('https://www.loupeznickapesina.cz'),
+    alternates: {
+      canonical: '/',
+    },
+    // Google shows the large og:image preview (Discover, rich results) only when the page opts in.
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+    },
+    openGraph: {
+      title: siteTitle,
+      description,
+      url: 'https://www.loupeznickapesina.cz',
+      siteName: 'Loupežnická pěšina',
+      locale: 'cs_CZ',
+      type: 'website',
+      images: [
+        {
+          // Bump the query when the image changes so social networks refetch it instead of serving their cached copy.
+          url: 'https://www.loupeznickapesina.cz/page-image.png?v=2',
+          width: 1200,
+          height: 630,
+          alt: 'Loupežnická pěšina'
+        },
+      ]
+    },
+  };
+}
 
 export default function RootLayout({
   children,
