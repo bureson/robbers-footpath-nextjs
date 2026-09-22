@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
 
@@ -9,6 +9,11 @@ import './globals.css';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+});
+
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-bricolage',
+  subsets: ['latin', 'latin-ext'],
 });
 
 const geistMono = Geist_Mono({
@@ -61,7 +66,7 @@ export default function RootLayout({
     <AuthProvider>
       <html lang='cs' className='scroll-smooth'>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} antialiased`}
         >
           {children}
           <SpeedInsights />

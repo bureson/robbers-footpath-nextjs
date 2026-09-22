@@ -5,6 +5,23 @@
   --foreground: #0a0a0a;
 }
 
+@theme {
+  --color-ink: #14261b;
+  --color-sage: #5b6d60;
+  --color-moss: #eef3ea;
+  --color-sand: #f6f8f4;
+  --color-sun: #f2c418;
+  --color-line: #c9d2c6;
+  --color-bark: #3b4a40;
+  --color-mist: #e3e9df;
+  --color-ash: #9aa89e;
+  --color-alert: #b3261e;
+}
+
+@theme inline {
+  --font-brico: var(--font-bricolage), Helvetica, Arial, sans-serif;
+}
+
 *, :before, :after {
     box-sizing: border-box;
 }
@@ -20,45 +37,68 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.text-shadow {
-  text-shadow: 1px 1px 1px #000;
+/* Admin (3a mockup style) */
+.admin-root {
+  font-family: var(--font-bricolage), Helvetica, Arial, sans-serif;
+  color: var(--color-ink);
+  background: #e9e7e2;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
-.home-page {
-  color: #fff;
-  transition: opacity 1s ease-in-out;
-}
-
-.home-page.loading {
-  opacity: 0;
-}
-
-.home-page.loaded {
-  opacity: 1;
-}
-
-.home-page .inverse {
+.admin-input {
+  height: 46px;
+  width: 100%;
+  border-radius: 12px;
   background: #fff;
-  color: var(--foreground);
+  border: 1.5px solid var(--color-line);
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color .15s ease;
 }
 
-.dashboard {
-  background: #fff;
-  color: #000;
-  height: 100%;
+.admin-input:focus {
+  border-color: var(--color-ink);
 }
 
-.bg-accent {
-  background-color: #0a580a;
-  color: #fff;
+.admin-input.strong {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -.02em;
 }
 
-.bg-accent-10 {
-  background-color: #e5e9e4;
-  color: #0a580a;
+.admin-input.multiline {
+  height: auto;
+  min-height: 110px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-bark);
+  resize: vertical;
 }
 
-.trail-card,
-.bounce-ball {
-  background: var(--background);
+.admin-input::placeholder {
+  color: var(--color-ash);
+}
+
+/* Sidebar brand mark: an occasional swirl that lands on a new blaze colour */
+@keyframes blaze-swirl {
+  0% { transform: perspective(200px) rotateY(0deg) scale(1); }
+  50% { transform: perspective(200px) rotateY(90deg) scale(1.15); }
+  100% { transform: perspective(200px) rotateY(180deg) scale(1); }
+}
+
+.blaze-swirl {
+  animation: blaze-swirl 900ms cubic-bezier(.45, 0, .2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blaze-swirl {
+    animation-duration: 1ms;
+  }
 }

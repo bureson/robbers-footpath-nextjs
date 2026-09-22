@@ -1,111 +1,67 @@
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
-import { LatLngTuple, LatLngBounds } from 'leaflet';
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+import { fetchGpx } from '../lib/gpx';
 
 interface GPXMapProps {
   gpxUrl: string;
+  color?: string;
 }
 
-const parseGPX = (gpxData: string): [number, number][] => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(gpxData, 'application/xml');
+const TILE_URL = 'https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=keauScA4B5LMSBSWdUf_og2zqpGJRPmh5JTmobrqxh8';
 
-  const trackPoints: [number, number][] = [];
-  const trkpts = xmlDoc.getElementsByTagName('trkpt');
-  const rtepts = xmlDoc.getElementsByTagName('rtept');
-  const points = trkpts.length > 0 ? trkpts : rtepts;
-  
-  for (let i = 0; i < points.length; i++) {
-    const lat = parseFloat(points[i].getAttribute('lat') || '');
-    const lon = parseFloat(points[i].getAttribute('lon') || '');
-    if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-      trackPoints.push([lat, lon]);
-    }
-  }
-
-  return trackPoints;
-};
-
-const calculateBounds = (points: LatLngTuple[]): LatLngBounds => {
-  const latitudes = points.map(point => point[0]);
-  const longitudes = points.map(point => point[1]);
-
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLon = Math.min(...longitudes);
-  const maxLon = Math.max(...longitudes);
-
-  return new LatLngBounds([minLat, minLon], [maxLat, maxLon]);
-};
-
-const getZoom = (bounds: LatLngBounds) => {
-  const distance = bounds.getNorthEast().distanceTo(bounds.getSouthWest());
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  const zoomAdjustment = devicePixelRatio > 1 ? 0.8 : 1;
-  const adjustedDistance = distance / zoomAdjustment;
-
-  if (adjustedDistance < 200) {
-    return 18;
-  } else if (adjustedDistance < 1000) {
-    return 17;
-  } else if (adjustedDistance < 5000) {
-    return 15;
-  } else if (adjustedDistance < 7500) {
-    return 14;
-  } else if (adjustedDistance < 15000) {
-    return 13;
-  } else {
-    return 12;
-  }
-}
-
-const GPXMap: React.FC<GPXMapProps> = ({ gpxUrl }) => {
-  const [gpxData, setGpxData] = useState<[number, number][] | null>(null);
-  const [bounds, setBounds] = useState<LatLngBounds | null>(null);
+// Leaflet is driven imperatively so that every (re)mount, including Fast Refresh, tears the old map down first.
+const GPXMap: React.FC<GPXMapProps> = ({ gpxUrl, color = '#d21f1f' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [track, setTrack] = useState<{ url: string; points: [number, number][] } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchGPX = async () => {
-      try {
-        const response = await fetch(gpxUrl);
-        if (!response.ok) {
-          throw new Error('Failed to load GPX file');
-        }
-        const data = await response.text();
-        const trackPoints = parseGPX(data);
-        if (trackPoints.length === 0) {
-          throw new Error('No route points found in GPX file');
-        }
-        setGpxData(trackPoints);
-
-        const trackBounds = calculateBounds(trackPoints);
-        setBounds(trackBounds);
-      } catch (error) {
-        console.error(error);
-        setError(error instanceof Error ? error.message : 'Failed to load GPX file');
-      }
-    };
-
-    fetchGPX();
+    let cancelled = false;
+    fetchGpx(gpxUrl)
+      .then(points => {
+        if (cancelled) return;
+        setTrack({ url: gpxUrl, points: points.map(point => [point.lat, point.lon] as [number, number]) });
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error(err);
+        setError(err instanceof Error ? err.message : 'Failed to load GPX file');
+      });
+    return () => { cancelled = true; };
   }, [gpxUrl]);
 
+  const points = track?.url === gpxUrl ? track.points : null;
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !points) return;
+
+    const map = L.map(container, { zoomControl: true, attributionControl: false });
+    L.tileLayer(TILE_URL, { maxZoom: 19 }).addTo(map);
+    const line = L.polyline(points, { color, weight: 4 }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [24, 24] });
+
+    // The container can be sized by a grid or flex parent that settles after the first paint.
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => map.invalidateSize()) : null;
+    observer?.observe(container);
+
+    return () => {
+      observer?.disconnect();
+      map.remove();
+    };
+  }, [points, color]);
+
   if (error) {
-    return <div>{error}</div>;
+    return <div className='flex h-full items-center justify-center p-4 text-center text-[13px] font-semibold text-sage'>{error}</div>;
   }
-
-  if (!gpxData || !bounds) {
-    return <div>Loading GPX data...</div>;
-  }
-
-  const center = bounds.getCenter();
-  const zoom = getZoom(bounds);
 
   return (
-    <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', margin: '0 auto' }}>
-      <TileLayer url={`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=keauScA4B5LMSBSWdUf_og2zqpGJRPmh5JTmobrqxh8`} />
-      <Polyline positions={gpxData} />
-    </MapContainer>
+    <div className='relative h-full w-full'>
+      {!points && <div className='absolute inset-0 flex items-center justify-center font-mono text-[12px] tracking-[.08em] text-sage'>LOADING ROUTE…</div>}
+      <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
+    </div>
   );
 };
 

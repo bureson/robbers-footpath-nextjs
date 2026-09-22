@@ -1,254 +1,325 @@
 'use client';
 
-import Image from 'next/image';
-import { Fragment, useEffect, useState } from 'react';
-import { Alert, Link, Snackbar } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Alert, Snackbar } from '@mui/material';
+import CloseOutlined from '@mui/icons-material/CloseOutlined';
+import DirectionsBike from '@mui/icons-material/DirectionsBike';
+import Hiking from '@mui/icons-material/Hiking';
+import MenuOutlined from '@mui/icons-material/MenuOutlined';
 
+import { Trail, Year, blazeAt, cx, sortTrails, sortYears, stampAt, sumParticipants } from './admin/format';
+import BrandBlaze from './admin/brandBlaze';
+import { BlazeMark } from './admin/ui';
+import HeroScene from './components/heroScene';
+import TrailLoader from './components/trailLoader';
+import TrailOverlay from './components/trailOverlay';
+import { formatCsDate, formatCsNumber, formatCsWeekday, participantsLabel, trailsLabel } from './lib/cs';
 import supabase from './lib/supabaseClient';
-import LoadingSpinner from './components/loadingSpinner';
-import TrailGrid from './components/trailGrid';
 
-const monthList = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'];
+const FIRST_EDITION = 1972;
 
-const getTrasyLabel = (trasyCount: Number) => {
-  switch (trasyCount) {
-    case 0:
-      return 'Zatím žádné trasy';
-    case 1:
-      return '1 trasa';
-    case 2:
-    case 3:
-    case 4:
-      return `${trasyCount} trasy`;
-    default:
-      return `${trasyCount} tras`;
+const scrollToId = (id: string) => {
+  // The header is sticky, so measuring it gives the current offset; the page top is simply 0.
+  if (id === 'top') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
   }
-}
-
-const getDateString = (date: any) => {
-  const eventDate = new Date(date);
-  const eventYear = eventDate.getFullYear();
-  const month = monthList[eventDate.getMonth()];
-  const day = eventDate.getDate();
-  return `${day}. ${month} ${eventYear}`;
+  // Defer a tick so a year switch has re-rendered before we measure.
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+  }, 30);
 };
 
-export default function Home() {
-  const [year, setYear] = useState<any>({});
-  const [yearList, setYearList] = useState<any[]>([]);
-  const [trailList, setTrailList] = useState<any[]>([]);
-  const [error, setError] = useState('');
+const navPill = (active: boolean) => cx(
+  'cursor-pointer rounded-full px-4 py-2 text-[14px] font-semibold whitespace-nowrap transition-colors',
+  active ? 'bg-ink text-white' : 'bg-moss text-ink hover:bg-mist',
+);
+
+export default function Home () {
+  const [yearList, setYearList] = useState<Year[]>([]);
+  const [trailList, setTrailList] = useState<Trail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const [openTrail, setOpenTrail] = useState<Trail | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
-    const gettingLatestYear = async () => {
-      const { data: yearList, error: yearError } = await supabase.from('year').select('*').order('year', { ascending: false }).limit(10);
-      if (yearError) setError(yearError.message);
-      else {
-        const [thisYear] = yearList;
-        const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', thisYear.id);
-        if (trailError) setError(trailError.message);
-        else {
-          setYear(thisYear);
-          setYearList(yearList);
-          setTrailList(trailData);
-        }
-      };
+    const load = async () => {
+      const [yearResult, trailResult] = await Promise.all([
+        supabase.from('year').select('*'),
+        supabase.from('trail').select('*'),
+      ]);
+      if (yearResult.error) setError(yearResult.error.message);
+      else setYearList(sortYears(yearResult.data as Year[]));
+      if (trailResult.error) setError(trailResult.error.message);
+      else setTrailList(sortTrails(trailResult.data as Trail[]));
       setLoading(false);
     };
-    gettingLatestYear();
+    load();
   }, []);
 
-  const selectYear = async (selectedYear: any) => {
-    const { data: trailData, error: trailError } = await supabase.from('trail').select('*').eq('yearId', selectedYear.id);
-    if (trailError) setError(trailError.message);
-    else {
-      setYear(selectedYear);
-      setTrailList(trailData);
-      document.getElementById('trail-section')?.scrollIntoView({ behavior: 'smooth' });
-    }
+  const currentYear = yearList[0] ?? null;
+  const year = yearList.find(candidate => candidate.id === selectedYearId) ?? currentYear;
+  const isCurrent = !year || !currentYear || year.id === currentYear.id;
+  const isPast = !isCurrent;
+  const yearLabel = year ? String(year.year) : String(new Date().getFullYear());
+  const trailsOf = (candidate: Year | null) => candidate ? trailList.filter(trail => trail.yearId === candidate.id) : [];
+  const trails = trailsOf(year);
+  const hiking = trails.filter(trail => trail.type === 'hiking');
+  const cycling = trails.filter(trail => trail.type === 'cycling');
+  const participants = sumParticipants(trails);
+  const previousYear = yearList[1] ?? null;
+  const previousParticipants = sumParticipants(trailsOf(previousYear));
+  const pastYears = yearList.slice(1);
+
+  const blazeFor = (trail: Trail) => {
+    const list = trail.type === 'cycling' ? cycling : hiking;
+    return blazeAt(Math.max(0, list.findIndex(candidate => candidate.id === trail.id)));
   };
-  const onSelectThisYear = () => selectYear(yearList[0]);
-  const onHideSnackbar = () => setError('');
 
-  const otherYearList = yearList.filter((_, i) => i !== 0);
-  const inspectingOldYear = otherYearList.some(otherYear => otherYear.id === year.id);
-  const hikingTrailList = trailList.filter(trail => trail.type === 'hiking');
-  const cyclingTrailList = trailList.filter(trail => trail.type === 'cycling');
+  const selectYear = (candidate: Year) => {
+    setSelectedYearId(candidate.id);
+    setOpenTrail(null);
+    scrollToId('top');
+  };
+  const goHome = () => {
+    setSelectedYearId(null);
+    setOpenTrail(null);
+    scrollToId('top');
+  };
+  const goPast = () => scrollToId(isCurrent ? 'past' : 'top');
+  const goContact = () => scrollToId('contact');
+  const goTrails = () => scrollToId('trails');
+  const closeTrail = () => setOpenTrail(null);
+  const onHideError = () => setError('');
+  const toggleMenu = () => setMenuOpen(open => !open);
+  const withMenuClosed = (action: () => void) => () => {
+    setMenuOpen(false);
+    action();
+  };
+  const navItems = [
+    { label: currentYear ? String(currentYear.year) : 'Letošní ročník', active: isCurrent, onClick: withMenuClosed(goHome) },
+    { label: 'Předchozí ročníky', active: isPast, onClick: withMenuClosed(goPast) },
+    { label: 'Kontakt', active: false, onClick: withMenuClosed(goContact) },
+  ];
+
+  // Participation for the shown year once it is recorded, otherwise last year's as a teaser.
+  const hasParticipation = participants > 0;
+  const statCard = isCurrent
+    ? hasParticipation
+      ? { label: 'Letos s námi šlo a jelo', value: formatCsNumber(participants), sub: 'účastníků' }
+      : previousYear && previousParticipants > 0
+        ? { label: 'Loni s námi šlo a jelo', value: formatCsNumber(previousParticipants), sub: 'účastníků' }
+        : { label: 'Tradice', value: `od ${FIRST_EDITION}`, sub: 'první ročník pochodu' }
+    : hasParticipation
+      ? { label: 'Celkem se zúčastnilo', value: formatCsNumber(participants), sub: `účastníků v roce ${yearLabel}` }
+      : { label: 'Celkem se zúčastnilo', value: '–', sub: 'počet účastníků není k dispozici' };
+
+  const introText = isCurrent
+    ? `Vyberte si některou z ${trails.length} nabízených tras, které pro vás nachystal Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si můžete stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace.`
+    : `Trasy ročníku ${yearLabel}${participants > 0 ? ' včetně počtu účastníků na každé z nich' : ''}. GPX soubory zůstávají ke stažení.`;
+
+  const renderColumn = (title: string, kind: 'hiking' | 'cycling', list: Trail[]) => (
+    <div className='flex min-w-0 flex-col gap-3'>
+      <div className='flex items-center justify-between px-[6px]'>
+        <span className='flex items-center gap-[10px] text-[26px] leading-none font-extrabold tracking-[-.03em]'>
+          <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-moss text-ink' aria-hidden='true'>{kind === 'cycling' ? <DirectionsBike fontSize='small' /> : <Hiking fontSize='small' />}</span>
+          {title}
+        </span>
+        <span className='text-[13px] font-bold text-sage'>{trailsLabel(list.length)}</span>
+      </div>
+      {list.length === 0 && (
+        <div className='rounded-[22px] bg-sand p-5 text-[14px] font-semibold text-sage'>
+          {isCurrent ? 'Trasy pro letošní ročník zveřejníme během několika následujících dní.' : 'Pro tento ročník nejsou žádné trasy k dispozici.'}
+        </div>
+      )}
+      {list.map(trail => {
+        const blaze = blazeFor(trail);
+        const onOpen = () => setOpenTrail(trail);
+        const stopClick = (ev: React.MouseEvent) => ev.stopPropagation();
+        return (
+          <div key={trail.id} onClick={onOpen} className='grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-stretch gap-4 rounded-[22px] bg-sand p-4 transition-colors hover:bg-moss'>
+            <BlazeMark color={blaze.hex} width={36} height={56} radius={8} border='1.5px solid #14261b' className='h-full min-h-[56px]' />
+            <div className='flex min-w-0 flex-col gap-2'>
+              <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
+                <span className='whitespace-nowrap text-[34px] leading-none font-extrabold tracking-[-.04em]'>{trail.title}</span>
+                <span className='whitespace-nowrap text-[13px] font-bold text-sage'>↑ {formatCsNumber(trail.elevation ?? 0)} m převýšení</span>
+                {hasParticipation && trail.participant_count != null && <span className='whitespace-nowrap text-[13px] font-bold text-sage'>· {participantsLabel(trail.participant_count)}</span>}
+              </div>
+              <div className='text-[13px] leading-[1.45] text-bark text-pretty'>{trail.description}</div>
+              <div className='mt-auto flex flex-wrap gap-[6px]'>
+                <button type='button' onClick={onOpen} className='cursor-pointer whitespace-nowrap rounded-full bg-ink px-[14px] py-[7px] text-[12px] font-bold text-white transition-colors hover:bg-[#1f3a29]'>Mapa trasy</button>
+                {trail.gpxFileUrl && (
+                  <a href={`${trail.gpxFileUrl}?download=1`} onClick={stopClick} className='whitespace-nowrap rounded-full border-[1.5px] border-ink bg-white px-3 py-[5.5px] text-[12px] font-bold text-ink no-underline transition-colors hover:bg-sun'>↓ GPX</a>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div>
-      {loading && <LoadingSpinner />}
-      {error && <Snackbar open={!!error} autoHideDuration={6000} onClose={onHideSnackbar}><Alert severity={'error'} variant={'filled'} onClose={onHideSnackbar}>{error}</Alert></Snackbar>}
-      <div className={`flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black bg-background home-page ${loading ? 'loading' : 'loaded'}`}>
-        <section className='relative flex items-center justify-center w-full h-screen min-h-[600px] overflow-hidden'>
-          <div
-            className='absolute inset-0 bg-cover bg-center bg-no-repeat'
-            style={{ backgroundImage: `url('/jizera-background.jpg')` }}
-          ></div>
+    <div className='font-brico min-h-screen bg-white text-ink antialiased'>
+      <header id='top' className='sticky top-0 z-[5] w-full bg-white/90 backdrop-blur-lg'>
+        <div className='mx-auto flex max-w-[1440px] items-center justify-between gap-[10px] px-6 py-[14px]'>
+          <button type='button' onClick={goHome} className='flex cursor-pointer items-center gap-3 bg-transparent text-ink'>
+            <BrandBlaze width={40} height={22} border='1.5px solid #14261b' />
+            <span className='whitespace-nowrap text-[clamp(16px,2vw,20px)] font-extrabold tracking-[-.02em]'>Loupežnickou pěšinou</span>
+          </button>
+          <nav className='ml-auto hidden gap-[6px] md:flex'>
+            {navItems.map(item => <button key={item.label} type='button' onClick={item.onClick} className={navPill(item.active)}>{item.label}</button>)}
+          </nav>
+          <button
+            type='button'
+            onClick={toggleMenu}
+            aria-label={menuOpen ? 'Zavřít menu' : 'Otevřít menu'}
+            aria-expanded={menuOpen}
+            className='flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-moss text-ink transition-colors hover:bg-mist md:hidden'
+          >
+            {menuOpen ? <CloseOutlined fontSize='small' /> : <MenuOutlined fontSize='small' />}
+          </button>
+        </div>
+        {menuOpen && (
+          <nav className='flex flex-col gap-[6px] border-t border-ink/10 px-6 pb-4 pt-3 md:hidden'>
+            {navItems.map(item => <button key={item.label} type='button' onClick={item.onClick} className={cx(navPill(item.active), 'w-full text-left')}>{item.label}</button>)}
+          </nav>
+        )}
+      </header>
 
-          <div className='relative z-10 text-center px-4 max-w-4xl mx-auto animate-fade-in'>
-            <div className='inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-full mb-6 text-sm font-semibold'>
-              <Image
-                className='dark:invert'
-                src='/calendar.svg'
-                alt='Calendar'
-                width={16}
-                height={16} />
-              <span>{getDateString(year.eventDate)}</span>
+      <div className='mx-auto max-w-[1440px] px-6'>
+        {isCurrent && (
+          <section className='relative flex items-end overflow-hidden rounded-[28px]' style={{ minHeight: 'clamp(560px, 42vw, 80vh)', margin: '0 calc(min(0px, (1440px - 100vw) / 2 + 24px))' }}>
+            <HeroScene year={yearLabel} />
+            <div className='pointer-events-none absolute inset-0' style={{ background: 'linear-gradient(to top, rgba(20,38,27,.75) 0px, rgba(20,38,27,.25) 200px, rgba(20,38,27,0) 320px)' }} />
+            <div
+              className='pointer-events-none relative mx-auto flex w-full max-w-[1392px] flex-wrap items-end gap-x-8 gap-y-6 py-[clamp(20px,3.5vw,44px)]'
+              // Side inset while the hero equals the column; it fades out as the hero bleeds past the column on wide screens.
+              style={{ paddingLeft: 'min(clamp(20px, 3.5vw, 44px), max(0px, 68px - (100vw - 1440px) / 2))', paddingRight: 'min(clamp(20px, 3.5vw, 44px), max(0px, 68px - (100vw - 1440px) / 2))' }}
+            >
+              <div className='min-w-0 flex-[1_1_320px] text-white'>
+                <h1 className='m-0 text-[clamp(34px,7vw,104px)] leading-[.9] font-extrabold tracking-[-.05em] text-balance' style={{ textShadow: '0 2px 24px rgba(20,38,27,.55)' }}>Loupežnickou pěšinou</h1>
+                <p className='mb-0 mt-5 max-w-[560px] text-[18px] leading-[1.4] font-medium text-pretty' style={{ textShadow: '0 1px 12px rgba(20,38,27,.6)' }}>Pěší a cyklistická turistická akce v Mníšku u Liberce. Různé trasy od 9 do 80 km, vhodné pro všechny věkové kategorie</p>
+              </div>
+              {currentYear && (
+                <button type='button' onClick={goTrails} className='pointer-events-auto min-w-[220px] flex-none cursor-pointer rounded-[20px] bg-sun px-[22px] py-5 text-left text-ink transition-transform duration-200 rotate-2 hover:rotate-0 hover:scale-[1.03]'>
+                  <div className='text-[12px] font-bold uppercase tracking-[.06em] opacity-70'>{formatCsWeekday(currentYear.eventDate) || 'Termín'}</div>
+                  <div className='mt-[6px] whitespace-nowrap text-[clamp(28px,3vw,40px)] leading-none font-extrabold tracking-[-.04em]'>{formatCsDate(currentYear.eventDate) || yearLabel}</div>
+                  <div className='mt-[10px] text-[14px] leading-[1.5] font-semibold'>Start 7:00 – 9:00<br />hřiště FK Mníšek</div>
+                </button>
+              )}
             </div>
-            <h1 className='text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 font-serif leading-tight text-shadow'>
-              Loupežnickou pěšinou
-            </h1>
-            <p className='text-lg md:text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto font-sans text-shadow'>
-              Pěší a cyklistická turistická akce v Mníšku u Liberce. Různé trasy od 9 do 80 km, vhodné pro všechny věkové kategorie
-            </p>
-            <div className='flex items-center justify-center gap-2 text-primary-foreground/80 text-shadow'>
-              <Image
-                className='dark:invert'
-                src='/place.svg'
-                alt='Location'
-                width={16}
-                height={16} />
-              <span className='font-medium'>Mníšek u Liberce</span>
+          </section>
+        )}
+
+        {isPast && year && (
+          <section className='flex flex-wrap items-end justify-between gap-6 px-2 pt-6'>
+            <div>
+              <button type='button' onClick={goHome} className='cursor-pointer bg-transparent text-[14px] font-bold text-sage hover:text-ink'>← Zpět na rok {currentYear?.year}</button>
+              <h1 className='m-0 mt-[10px] text-[clamp(48px,6vw,84px)] leading-[.9] font-extrabold tracking-[-.05em]'>Ročník {yearLabel}</h1>
+              <div className='mt-[10px] text-[16px] font-semibold text-sage'>{formatCsDate(year.eventDate)}{participants > 0 && ` · ${participantsLabel(participants)}`}</div>
             </div>
+            <div className='flex flex-wrap gap-[6px]'>
+              {yearList.map(candidate => {
+                const onPick = () => candidate.id === currentYear?.id ? goHome() : selectYear(candidate);
+                return <button key={candidate.id} type='button' onClick={onPick} className={cx(navPill(candidate.id === year.id), 'font-bold')}>{String(candidate.year)}</button>;
+              })}
+            </div>
+          </section>
+        )}
+
+        <section id='trails' className='mt-12 flex flex-col gap-6 md:flex-row md:items-start md:justify-between'>
+          <div className='max-w-[720px] px-2 pt-2'>
+            <h2 className='m-0 text-[40px] leading-none font-extrabold tracking-[-.04em]'>Trasy pro rok {yearLabel}</h2>
+            <p className='mb-0 mt-[14px] text-[15px] leading-[1.5] text-bark text-pretty'>{introText}</p>
           </div>
-          <div className='absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce'>
-            <div className='w-6 h-10 border-2 border-primary-foreground/50 rounded-full flex items-start justify-center pt-2'>
-              <div className='w-1.5 h-3 bounce-ball rounded-full'></div>
-            </div>
-          </div>
+          <div className='shrink-0 rounded-[20px] bg-ink px-[22px] py-5 text-white md:min-w-[260px]'><div className='text-[12px] font-bold opacity-70'>{statCard.label}</div><div className='mt-2 text-[40px] leading-none font-extrabold tracking-[-.04em]'>{statCard.value}</div><div className='mt-[6px] text-[13px] font-semibold opacity-70'>{statCard.sub}</div></div>
         </section>
-        <section id='trail-section' className='py-20 px-4 bg-background w-full inverse'>
-          <div className='max-w-7xl mx-auto'>
-            <div className='text-center mb-16 animate-slide-up'>
-              <h2 className='section-title mb-6 text-3xl md:text-4xl lg:text-5xl font-serif'>Trasy pro rok {year.year}</h2>
-              <p className='text-muted-foreground max-w-2xl mx-auto text-lg'>
-                Vyberte si některou z {trailList.length} nabízených tras, které pro vás nachystal Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si můžete stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace
-              </p>
-              {inspectingOldYear && <p className='mt-4'>
-                <Link component='button' onClick={onSelectThisYear}>
-                  ← Zpět na letošní ročník
-                </Link>
-              </p>}
+
+        {loading
+          ? <div className='mt-10'><TrailLoader /></div>
+          : (
+            <section className='mt-10 grid grid-cols-[repeat(auto-fit,minmax(min(420px,100%),1fr))] gap-6'>
+              {renderColumn('Pěší trasy', 'hiking', hiking)}
+              {renderColumn('Cyklo trasy', 'cycling', cycling)}
+            </section>
+          )}
+
+        {pastYears.length > 0 && (
+          <section id='past' className='mt-16'>
+            <div className='flex flex-wrap items-baseline justify-between gap-3 px-[6px]'>
+              <span className='text-[26px] leading-none font-extrabold tracking-[-.03em]'>Předchozí ročníky</span>
+              <span className='text-[13px] font-bold text-sage'>Prohlédnout si také můžete trasy předchozích ročníků</span>
             </div>
-            <div className='mb-16'>
-              <div className='flex flex-col md:flex-row items-center gap-3 mb-8'>
-                <div className='p-2 bg-accent-10 rounded-lg'>
-                  <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='lucide lucide-mountain w-8 h-8'>
-                    <path d='m8 3 4 8 5-5 5 15H2L8 3z' />
-                  </svg>
-                </div>
-                <h3 className='text-2xl font-bold text-foreground font-serif'>Pěší trasy</h3>
-                <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(hikingTrailList.length)}</span>
-              </div>
-              <TrailGrid trailList={hikingTrailList} />
-            </div>
-            <div className='mb-16'>
-              <div className='flex items-center gap-3 mb-8'>
-                <div className='p-2 bg-accent-10 rounded-lg'>
-                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bike w-8 h-8 text-accent">
-                    <circle cx="18.5" cy="17.5" r="3.5" />
-                    <circle cx="5.5" cy="17.5" r="3.5" />
-                    <circle cx="15" cy="5" r="1" />
-                    <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
-                  </svg>
-                </div>
-                <h3 className='text-2xl font-bold text-foreground font-serif'>Cyklo trasy</h3>
-                <span className='bg-accent-10 text-primary px-3 py-1 rounded-full text-sm font-medium'>{getTrasyLabel(cyclingTrailList.length)}</span>
-              </div>
-              <TrailGrid trailList={cyclingTrailList} />
-            </div>
-            {otherYearList.length > 0 && <div className='text-center mb-4 animate-slide-up'>
-              <p className='text-muted-foreground mb-2 max-w-2xl mx-auto text-lg'>
-                Prohlédnout si také můžete trasy předchozích ročníků:
-              </p>
-              {otherYearList.map((year: any, index: number) => {
-                const onClickYear = () => selectYear(year);
+            <div className='mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(160px,100%),1fr))] gap-[14px]'>
+              {pastYears.map((candidate, index) => {
+                const list = trailsOf(candidate);
+                const count = sumParticipants(list);
+                const active = candidate.id === year?.id;
+                const onPick = () => selectYear(candidate);
                 return (
-                  <Fragment key={year.id}>
-                    <Link component="button" onClick={onClickYear}>
-                      {year.year}
-                    </Link>
-                    {index < otherYearList.length - 1 && ' | '}
-                  </Fragment>
+                  <button
+                    key={candidate.id}
+                    type='button'
+                    onClick={onPick}
+                    className='flex cursor-pointer flex-col gap-[10px] rounded-[20px] border-2 border-dashed px-[18px] py-5 text-left text-ink transition-transform duration-200 hover:-rotate-2 hover:scale-[1.03]'
+                    style={{ background: stampAt(index + 1), borderColor: active ? '#14261b' : 'rgba(20,38,27,.3)' }}
+                  >
+                    <div className='text-[12px] font-bold uppercase tracking-[.06em] opacity-65'>{formatCsDate(candidate.eventDate)}</div>
+                    <div className='text-[44px] leading-none font-extrabold tracking-[-.04em]'>{String(candidate.year)}</div>
+                    <div className='text-[13px] font-semibold opacity-75'>{count > 0 ? `${participantsLabel(count)} · ` : ''}{trailsLabel(list.length)}</div>
+                  </button>
                 );
               })}
-            </div>}
-          </div>
-        </section>
-        <footer className='bg-accent text-primary-foreground w-full py-16 px-4'>
-          <div className='max-w-7xl mx-auto'>
-            <div className='grid md:grid-cols-3 gap-12 mb-12'>
-              <div>
-                <div className='flex items-center gap-2 mb-4'>
-                  <Image
-                    className='dark:invert w-8 h-8'
-                    src='/mountain.svg'
-                    alt='Mountain'
-                    width={16}
-                    height={16} />
-                  <span className='text-xl font-bold font-serif'>Loupežnickou pěšinou</span>
-                </div>
-                <p className='text-primary-foreground/80 leading-relaxed'>
-                  Klub českých turistů v Mníšku u Liberce vás zve na turistický pochod Loupežnickou pěšinou. V nabídce pochodu jsou pěší a cyklo trasy. Vybrat si můžete libovolně dle vaší výkonnosti.
-                </p>
-              </div>
-              <div>
-                <h4 className='font-bold text-lg mb-4 font-serif'>Detaily akce</h4>
-                <div className='space-y-3'>
-                  <div className='flex items-center gap-3 text-primary-foreground/80'>
-                    <Image
-                      className='dark:invert'
-                      src='/calendar.svg'
-                      alt='Calendar'
-                      width={16}
-                      height={16} />
-                    <span>{getDateString(year.eventDate)}</span>
-                  </div>
-                  <div className='flex items-center gap-3 text-primary-foreground/80'>
-                    <Image
-                      className='dark:invert'
-                      src='/clock.svg'
-                      alt='Clock'
-                      width={16}
-                      height={16} />
-                    <span>Start: 7:00 – 9:00</span>
-                  </div>
-                  <div className='flex items-center gap-3 text-primary-foreground/80'>
-                    <Image
-                      className='dark:invert'
-                      src='/place.svg'
-                      alt='Location'
-                      width={16}
-                      height={16} />
-                    <span> hřiště FK Mníšek</span>
-                  </div>
-                  <div className='flex items-center gap-3 text-primary-foreground/80'>
-                    <Image
-                      className='dark:invert'
-                      src='/mail.svg'
-                      alt='Contact'
-                      width={16}
-                      height={16} />
-                    <span><a href='mailto:daneckova.b@seznam.cz'>daneckova.b@seznam.cz</a></span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className='font-bold text-lg mb-4 font-serif'>Odkazy</h4>
-                <div className='space-y-2'>
-                  <a href='https://mnisekkct.webnode.cz/' target='_blank' rel='noopener noreferrer' className='block text-primary-foreground/80 hover:text-primary-foreground transition-colors'>KČT Mníšek</a>
-                  <a href='https://www.obec-mnisek.cz/' target='_blank' rel='noopener noreferrer' className='block text-primary-foreground/80 hover:text-primary-foreground transition-colors'>Obec Mníšek</a>
-                  <a href='https://kct.cz/' target='_blank' rel='noopener noreferrer' className='block text-primary-foreground/80 hover:text-primary-foreground transition-colors'>Klub českých turistů</a>
-                  <a href='/admin' className='block text-primary-foreground/80 hover:text-primary-foreground transition-colors'>Admin portal</a>
-                </div>
-              </div>
             </div>
-            <div className='border-t border-primary-foreground/20 pt-8 text-center text-primary-foreground/60'>
-              <p>Powered by <a href='https://nextjs.org/' target='_blank' rel='noopener noreferrer'>Next.js</a>, <a href='https://vercel.com/' target='_blank' rel='noopener noreferrer'>Vercel</a> and <a href='https://supabase.com/' target='_blank' rel='noopener noreferrer'>Supabase</a></p>
-            </div>
-          </div>
-        </footer>
+          </section>
+        )}
       </div>
+
+      <footer id='contact' className='mt-[72px] bg-ink px-6 pb-7 pt-14 text-white'>
+        <div className='mx-auto grid max-w-[1440px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-10'>
+          <div>
+            <div className='flex items-center gap-3'>
+              <BrandBlaze width={40} height={22} />
+              <span className='text-[20px] font-extrabold tracking-[-.02em]'>Loupežnickou pěšinou</span>
+            </div>
+            <p className='mb-0 mt-4 max-w-[380px] text-[14px] leading-[1.55] opacity-80 text-pretty'>Klub českých turistů v Mníšku u Liberce vás zve na turistický pochod Loupežnickou pěšinou. V nabídce pochodu jsou pěší a cyklo trasy. Vybrat si můžete libovolně dle vaší výkonnosti.</p>
+          </div>
+          <div>
+            <div className='text-[16px] font-extrabold'>Detaily akce</div>
+            <div className='mt-4 flex flex-col gap-[10px] text-[14px] opacity-85'>
+              <span>{currentYear ? formatCsDate(currentYear.eventDate) : ''}</span>
+              <span>Start: 7:00 – 9:00</span>
+              <span>hřiště FK Mníšek</span>
+              <a href='mailto:daneckova.b@seznam.cz' className='text-white'>daneckova.b@seznam.cz</a>
+            </div>
+          </div>
+          <div>
+            <div className='text-[16px] font-extrabold'>Odkazy</div>
+            <div className='mt-4 flex flex-col gap-[10px] text-[14px] opacity-85'>
+              <a href='https://mnisekkct.webnode.cz/' target='_blank' rel='noopener noreferrer' className='text-white no-underline hover:underline'>KČT Mníšek</a>
+              <a href='https://www.obec-mnisek.cz/' target='_blank' rel='noopener noreferrer' className='text-white no-underline hover:underline'>Obec Mníšek</a>
+              <a href='https://kct.cz/' target='_blank' rel='noopener noreferrer' className='text-white no-underline hover:underline'>Klub českých turistů</a>
+              <a href='/admin' className='text-white no-underline hover:underline'>Admin portal</a>
+            </div>
+          </div>
+        </div>
+        <div className='mx-auto mt-10 max-w-[1440px] border-t border-white/15 pt-5 text-center text-[12px] opacity-60'>
+          Powered by <a href='https://nextjs.org/' target='_blank' rel='noopener noreferrer' className='text-white'>Next.js</a>, <a href='https://vercel.com/' target='_blank' rel='noopener noreferrer' className='text-white'>Vercel</a> and <a href='https://supabase.com/' target='_blank' rel='noopener noreferrer' className='text-white'>Supabase</a>
+        </div>
+      </footer>
+
+      <TrailOverlay trail={openTrail} blaze={openTrail ? blazeFor(openTrail) : blazeAt(0)} year={yearLabel} showParticipants={hasParticipation} onClose={closeTrail} />
+
+      {error && (
+        <Snackbar open={Boolean(error)} autoHideDuration={6000} onClose={onHideError}>
+          <Alert severity='error' variant='filled' onClose={onHideError}>{error}</Alert>
+        </Snackbar>
+      )}
     </div>
   );
 }
