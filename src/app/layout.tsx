@@ -42,6 +42,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
+  // Google shows the large og:image preview (Discover, rich results) only when the page opts in.
+  robots: {
+    index: true,
+    follow: true,
+    'max-image-preview': 'large',
+  },
   openGraph: {
     title: `Loupežnická pěšina ${new Date().getFullYear()}`,
     description: 'Loupežnická pěšina – turistické a cyklo trasy od 9 do 80 km, vhodné pro všechny věkové kategorie. Objevte krásy přírody, zajímavá místa a doporučené body na cestu pro pěší turisty a milovníky výletů.',
@@ -51,7 +57,8 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://www.loupeznickapesina.cz/page-image.png',
+        // Bump the query when the image changes so social networks refetch it instead of serving their cached copy.
+        url: 'https://www.loupeznickapesina.cz/page-image.png?v=2',
         width: 1200,
         height: 630,
         alt: 'Loupežnická pěšina'
