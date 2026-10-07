@@ -5,7 +5,7 @@ import supabase from '../lib/supabaseClient';
 
 interface AuthContextType {
   user: any;
-  login: (email: string, password: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -36,15 +36,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  // Google is the only sign-in method. Google sends the browser back to /login, where the client
+  // picks the session up from the URL and the login page forwards to /admin. A refused sign-in (an
+  // account that isn't allowed in) comes back the same way, so the login page can show the error.
+  const login = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/login` },
     });
     if (error) throw error;
-    setUser(data.user);
-    setLoading(false);
   };
 
   const logout = async () => {

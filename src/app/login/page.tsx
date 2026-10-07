@@ -1,41 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import BrandBlaze from '../admin/brandBlaze';
-import { ErrorNote, Field, Label, Pill } from '../admin/ui';
+import { ErrorNote, Label, Pill } from '../admin/ui';
 import { useAuth } from '../context/authContext';
+
+// Supabase reports a refused Google sign-in in the URL it redirects back to, in the query or the hash.
+// The URL doesn't change while this page is open, so there is nothing to subscribe to.
+const noSubscribe = () => () => {};
+const noRedirectError = () => '';
+const readRedirectError = () => {
+  const params = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  const code = params.get('error_code') ?? hash.get('error_code');
+  const description = params.get('error_description') ?? hash.get('error_description');
+  if (!code && !description) return '';
+  // New sign-ups are disabled, so a Google account that isn't already an admin lands here.
+  if (code === 'signup_disabled') return 'This Google account doesn\'t have access to the admin. Ask an existing admin to add you.';
+  return description ?? 'Failed to log in. Please try again.';
+};
 
 export default function Login () {
   const { login, loading, user } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const redirectError = useSyncExternalStore(noSubscribe, readRedirectError, noRedirectError);
+  const [loginError, setLoginError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const error = loginError || redirectError;
 
-  // Already signed in: go straight to the dashboard.
+  // Already signed in, or just back from Google: go straight to the dashboard.
   useEffect(() => {
     if (!loading && user) router.replace('/admin');
   }, [loading, user, router]);
 
-  const onChangeEmail = (ev: React.ChangeEvent<HTMLInputElement>) => setEmail(ev.target.value);
-  const onChangePassword = (ev: React.ChangeEvent<HTMLInputElement>) => setPassword(ev.target.value);
-  const onSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in both your email and password.');
-      return;
-    }
+  const onLogin = async () => {
     try {
       setSubmitting(true);
-      setError('');
-      await login(email, password);
-      router.push('/admin');
+      setLoginError('');
+      await login();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to log in. Please try again.');
+      setLoginError(err instanceof Error ? err.message : 'Failed to log in. Please try again.');
       setSubmitting(false);
     }
   };
@@ -48,26 +55,17 @@ export default function Login () {
           <span className='text-[18px] font-extrabold tracking-[-.02em]'>Loupežnická pěšina</span>
         </Link>
 
-        <form onSubmit={onSubmit} className='rounded-[20px] bg-white px-7 pb-6 pt-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,.5)]'>
+        <div className='rounded-[20px] bg-white px-7 pb-6 pt-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,.5)]'>
           <Label>Admin</Label>
           <h1 className='m-0 mt-[6px] text-[30px] leading-[1.1] font-semibold tracking-[-.03em] text-ink'>Sign in to manage the trails</h1>
-
-          <div className='mt-7 flex flex-col gap-[18px]'>
-            <Field label='Email'>
-              <input className='admin-input' type='email' value={email} onChange={onChangeEmail} placeholder='admin@example.com' autoComplete='email' autoFocus />
-            </Field>
-            <Field label='Password'>
-              <input className='admin-input' type='password' value={password} onChange={onChangePassword} autoComplete='current-password' />
-            </Field>
-          </div>
 
           <ErrorNote>{error}</ErrorNote>
 
           <div className='mt-7 flex items-center justify-between gap-3'>
             <Link href='/' className='text-[13px] font-semibold text-sage no-underline hover:text-ink'>← Back to the site</Link>
-            <Pill type='submit' variant='primary' disabled={submitting}>{submitting ? 'Signing in…' : 'Log in'}</Pill>
+            <Pill variant='primary' onClick={onLogin} disabled={submitting || loading}>{submitting ? 'Redirecting…' : 'Sign in with Google'}</Pill>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

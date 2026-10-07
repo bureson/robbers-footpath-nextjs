@@ -132,7 +132,12 @@ const TrailDialog = forwardRef<TrailDialogHandle, TrailDialogProps>(function Tra
 
   const uploadGpx = async () => {
     if (!gpxFile) return null;
-    const response = await fetch(`/api/uploadGpx?filename=${encodeURIComponent(gpxFile.file.name)}`, { method: 'POST', body: gpxFile.file });
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(`/api/uploadGpx?filename=${encodeURIComponent(gpxFile.file.name)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+      body: gpxFile.file,
+    });
     if (!response.ok) throw new Error('GPX upload failed');
     const { url } = await response.json();
     return url as string;
