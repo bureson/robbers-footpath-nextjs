@@ -106,8 +106,11 @@ export default function HomeView ({ yearList, trailList, loadError = '' }: HomeV
       ? { label: 'Celkem se zúčastnilo', value: formatCsNumber(participants), sub: `účastníků v roce ${yearLabel}` }
       : { label: 'Celkem se zúčastnilo', value: '–', sub: 'počet účastníků není k dispozici' };
 
+  // A new edition has no trails until the club publishes them, so don't offer a choice of "0 trails".
   const introText = isCurrent
-    ? `Vyberte si některou z ${trails.length} nabízených tras, které pro vás nachystal Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si můžete stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace.`
+    ? trails.length > 0
+      ? `Vyberte si některou z ${trails.length} nabízených tras, které pro vás nachystal Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si můžete stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace.`
+      : `Trasy pro ročník ${yearLabel} pro vás chystá Klub Českých Turistů v Mníšku u Liberce. Ke každé trase si pak budete moci stáhnout GPX soubor a nahrát jej do vaší oblíbené navigační aplikace.`
     : `Trasy ročníku ${yearLabel}${participants > 0 ? ' včetně počtu účastníků na každé z nich' : ''}. GPX soubory zůstávají ke stažení.`;
 
   const renderColumn = (title: string, kind: 'hiking' | 'cycling', list: Trail[]) => (
@@ -117,11 +120,11 @@ export default function HomeView ({ yearList, trailList, loadError = '' }: HomeV
           <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-moss text-ink' aria-hidden='true'>{kind === 'cycling' ? <DirectionsBike fontSize='small' /> : <Hiking fontSize='small' />}</span>
           {title}
         </span>
-        <span className='text-[13px] font-bold text-sage'>{trailsLabel(list.length)}</span>
+        {list.length > 0 && <span className='text-[13px] font-bold text-sage'>{trailsLabel(list.length)}</span>}
       </div>
       {list.length === 0 && (
         <div className='rounded-[22px] bg-sand p-5 text-[14px] font-semibold text-sage'>
-          {isCurrent ? 'Trasy pro letošní ročník zveřejníme během několika následujících dní.' : 'Pro tento ročník nejsou žádné trasy k dispozici.'}
+          {isCurrent ? `Trasy pro ročník ${yearLabel} zveřejníme před konáním akce.` : 'Pro tento ročník nejsou žádné trasy k dispozici.'}
         </div>
       )}
       {list.map(trail => {
